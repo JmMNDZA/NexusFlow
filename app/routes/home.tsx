@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { GridLayoutHome } from "~/components/GridLayoutHome"
+import { GridLayout } from "~/components/GridLayout"
 import { Navbar } from "~/components/Navbar";
 
 export function meta({}: Route.MetaArgs) {
@@ -14,7 +14,7 @@ export default function Home() {
     <div className="bg-base-200 min-h-screen w-full flex flex-col">
       <Navbar modifyType="simple" />
       <main className="flex items-center">
-        <GridLayoutHome />
+        <GridLayout modifyType="home"/>
       </main>
     </div>
   );
