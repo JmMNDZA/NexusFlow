@@ -16,7 +16,7 @@ body {
 }
 
 h1 {
-  @apply text-6xl font-black
+  @apply sm:!text-xl md:!text-2xl lg:!text-5xl font-black
 }
 
 h3 {
