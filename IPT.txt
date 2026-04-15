@@ -1,0 +1,13 @@
+API Route           HTTP Method     Description
+/api/v1/workout     GET             returns all workout records
+/api/v1/workout     POST            adds a new workout record
+/api/v1/workout     PUT             update a new workout record
+/api/v1/workout     DELETE          delete a new workout record
+/api/v1/progress    GET             returns all progress records
+/api/v1/progress    POST            adds a new progress record
+/api/v1/progress    PUT             update a new progress record
+/api/v1/progress    DELETE          delete a new progress record
+/api/v1/user        GET             returns all user records
+/api/v1/user        POST            adds a new user record
+/api/v1/user        PUT             update a new user record
+/api/v1/user        DELETE          delete a new user record
