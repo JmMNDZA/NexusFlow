@@ -25,12 +25,12 @@ app.get('/', (req, res) => {
 });
 
 // Routes
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/projects', require('./routes/projectRoutes'));
-app.use('/api/tasks', require('./routes/taskRoutes'));
-app.use('/api/comments', require('./routes/commentRoutes'));
-app.use('/api/attachments', require('./routes/attachmentRoutes'));
-app.use('/api/workspaces', require('./routes/workspaceRoutes'));
+app.use('/api/v1/users', require('./routes/userRoutes'));
+app.use('/api/v1/projects', require('./routes/projectRoutes'));
+app.use('/api/v1/tasks', require('./routes/taskRoutes'));
+app.use('/api/v1/comments', require('./routes/commentRoutes'));
+app.use('/api/v1/attachments', require('./routes/attachmentRoutes'));
+app.use('/api/v1/workspaces', require('./routes/workspaceRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
