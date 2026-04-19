@@ -19,15 +19,16 @@ export default function Tasks() {
   const [selectedProject, setSelectedProject] = useState("All");
   const [selectedView, setSelectedView] = useState<ViewType>("kanban");
   const [showNewProjectInput, setShowNewProjectInput] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const renderView = () => {
     switch (selectedView) {
       case "kanban":
-        return <KanbanView projectName={selectedProject} />;
+        return <KanbanView projectName={selectedProject} searchQuery={searchQuery} />;
       case "calendar":
-        return <CalendarView projectName={selectedProject} />;
+        return <CalendarView projectName={selectedProject} searchQuery={searchQuery} />;
       case "list":
-        return <ListView projectName={selectedProject} />;
+        return <ListView projectName={selectedProject} searchQuery={searchQuery} />;
       default:
         return null;
     }
@@ -51,7 +52,6 @@ export default function Tasks() {
       <Navbar modifyType="project" />
       
       <div className="flex flex-1">
-        {/* Projects Sidebar */}
         <aside className="w-64 bg-base-100 p-6 flex flex-col gap-4">
           <h3 className="font-bold mb-2">Projects</h3>
           
@@ -91,11 +91,20 @@ export default function Tasks() {
           </div>
         </aside>
 
-        {/* Main Content Area */}
         <main className="flex-1 flex flex-col">
-          {/* View Switcher Header */}
           <div className="bg-base-100 px-6 py-4 flex items-center justify-between border-b border-base-200">
-            <h2 className="text-xl font-bold">{getViewTitle()}</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold">{getViewTitle()}</h2>
+              <div className="form-control">
+                <input 
+                  type="text" 
+                  placeholder="Search tasks..." 
+                  className="input input-bordered input-sm w-64" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
             
             <div className="flex gap-2">
               <button
@@ -119,7 +128,6 @@ export default function Tasks() {
             </div>
           </div>
 
-          {/* View Content */}
           <div className="flex-1 p-6 overflow-auto">
             {renderView()}
           </div>

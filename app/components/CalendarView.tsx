@@ -1,7 +1,20 @@
-export function CalendarView({ projectName }: { projectName: string }) {
+interface CalendarViewProps {
+  projectName: string;
+  searchQuery: string;
+}
+
+export function CalendarView({ projectName, searchQuery }: CalendarViewProps) {
   return (
     <div className="bg-base-100 rounded-box p-6">
-      {/* Placeholder calendar grid */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-bold text-lg">Calendar - {projectName}</h3>
+        {searchQuery && (
+          <span className="badge badge-primary badge-outline">
+            Searching: {searchQuery}
+          </span>
+        )}
+      </div>
+
       <div className="mt-6">
         <div className="flex justify-between items-center mb-4">
           <button className="btn btn-sm btn-ghost">Previous</button>
@@ -17,7 +30,7 @@ export function CalendarView({ projectName }: { projectName: string }) {
           ))}
           
           {Array.from({ length: 35 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-base-200 rounded p-2 text-sm">
+            <div key={i} className="aspect-square bg-base-200 rounded p-2 text-sm hover:bg-base-300 transition-colors cursor-pointer">
               {i + 1 <= 30 ? i + 1 : ''}
             </div>
           ))}

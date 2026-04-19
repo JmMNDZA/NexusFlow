@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { TaskModal } from './TaskModal'; 
 
 // Unified Task Interface
 interface Task {
@@ -22,9 +23,12 @@ const mockTasks: Task[] = [
   { id: 8, title: "Task Assignment #8", description: "Lorem Ipsum dolor sit amet", status: "In Progress", priority: "Medium", dueDate: "Apr 22, 2026", assignees: 2 },
 ];
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
   return (
-    <div className="bg-base-100 rounded-box p-4 shadow-sm hover:shadow-md transition-shadow w-full cursor-pointer border border-base-300">
+    <div 
+      onClick={onClick}
+      className="bg-base-100 rounded-box p-4 shadow-sm hover:shadow-md transition-shadow w-full cursor-pointer border border-base-300"
+    >
       <h4 className="font-semibold text-sm mb-1">{task.title}</h4>
       <p className="text-xs text-base-content/60 mb-3">{task.description}</p>
       
@@ -44,7 +48,12 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
-function KanbanColumn({ title, tasks, status }: { title: string; tasks: Task[]; status: Task["status"] }) {
+function KanbanColumn({ title, tasks, status, onTaskClick }: { 
+  title: string; 
+  tasks: Task[]; 
+  status: Task["status"];
+  onTaskClick: (task: Task) => void;
+}) {
   const headerColors = {
     Requested: "bg-info text-info-content",
     "In Progress": "bg-warning text-warning-content",
@@ -59,23 +68,57 @@ function KanbanColumn({ title, tasks, status }: { title: string; tasks: Task[]; 
       
       <div className="flex flex-col gap-3 bg-base-200/50 p-2 rounded-box min-h-[500px]">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} />
         ))}
       </div>
     </div>
   );
 }
 
-export function KanbanView({ projectName }: { projectName: string }) {  // Helper to filter tasks by status
-  const getTasksByStatus = (status: Task["status"]) => 
-    mockTasks.filter(task => task.status === status);
+export function KanbanView({ projectName, searchQuery }: { projectName: string; searchQuery: string }) {
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-return (
-    <div className="flex gap-6 overflow-x-auto pb-4 p-2">
-      <KanbanColumn title="Requested" status="Requested" tasks={getTasksByStatus("Requested")} />
-      <KanbanColumn title="In Progress" status="In Progress" tasks={getTasksByStatus("In Progress")} />
-      <KanbanColumn title="Done" status="Done" tasks={getTasksByStatus("Done")} />
-    </div>
+  const filteredTasks = mockTasks.filter((task) => {
+    const matchesSearch = 
+      task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      task.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  const getTasksByStatus = (status: Task["status"]) => 
+    filteredTasks.filter(task => task.status === status);
+
+  return (
+    <>
+      <div className="flex gap-6 overflow-x-auto pb-4 p-2">
+        <KanbanColumn 
+          title="Requested" 
+          status="Requested" 
+          tasks={getTasksByStatus("Requested")} 
+          onTaskClick={setSelectedTask} 
+        />
+        <KanbanColumn 
+          title="In Progress" 
+          status="In Progress" 
+          tasks={getTasksByStatus("In Progress")} 
+          onTaskClick={setSelectedTask} 
+        />
+        <KanbanColumn 
+          title="Done" 
+          status="Done" 
+          tasks={getTasksByStatus("Done")} 
+          onTaskClick={setSelectedTask} 
+        />
+      </div>
+
+      {selectedTask && (
+        <TaskModal 
+          task={selectedTask} 
+          isOpen={!!selectedTask} 
+          onClose={() => setSelectedTask(null)} 
+        />
+      )}
+    </>
   );
 }
 

@@ -39,8 +39,14 @@ function PriorityBadge({ priority }: { priority: Task["priority"] }) {
   return <span className={`badge ${colorMap[priority]} badge-sm`}>{priority}</span>;
 }
 
-export function ListView({ projectName }: { projectName: string }) {
-    return (
+export function ListView({ projectName, searchQuery }: { projectName: string; searchQuery: string }) {
+  const filteredTasks = mockTasks.filter((task) => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          task.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  return (
     <div className="bg-base-100 rounded-box overflow-hidden">
       <div className="overflow-x-auto">
         <table className="table table-zebra w-full">
@@ -58,7 +64,7 @@ export function ListView({ projectName }: { projectName: string }) {
             </tr>
           </thead>
           <tbody>
-            {mockTasks.map((task) => (
+            {filteredTasks.map((task) => (
               <tr key={task.id} className="hover">
                 <td>
                   <input type="checkbox" className="checkbox checkbox-sm" />
@@ -76,7 +82,7 @@ export function ListView({ projectName }: { projectName: string }) {
                   <div className="flex -space-x-2">
                     {Array.from({ length: task.assignees }).map((_, i) => (
                       <div key={i} className="avatar placeholder">
-            <div className="bg-neutral text-neutral-content rounded-full w-6 h-6 text-xs flex items-center justify-center ring-2 ring-base-100">
+                        <div className="bg-neutral text-neutral-content rounded-full w-6 h-6 text-xs flex items-center justify-center ring-2 ring-base-100">
                           <span>A{i + 1}</span>
                         </div>
                       </div>
@@ -85,6 +91,13 @@ export function ListView({ projectName }: { projectName: string }) {
                 </td>
               </tr>
             ))}
+            {filteredTasks.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center py-10 text-base-content/50">
+                  No tasks found matching your search.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
