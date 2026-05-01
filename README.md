@@ -1,0 +1,2 @@
+<h1> NexusFlow: Collaborative Task and Project Management Tool </h1>
+<p> NexusFlow is a web-based application designed to help teams organize, track, and execute work in a centralized digital workspace. The system allows users to manage tasks through various views, collaborate in real-time, and monitor project health. The goal of the system is to replace fragmented communication with a structured environment, ensuring deadlines are met and workloads are balanced.</p>
