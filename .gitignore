@@ -37,3 +37,7 @@ temp/
 # React Router
 /.react-router/
 /build/
+
+.vite/
+.react-router/
+node_modules/
