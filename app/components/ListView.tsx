@@ -1,62 +1,60 @@
-interface Task {
-  id: number;
-  title: string;
-  description: string;
-  status: "Requested" | "In Progress" | "Done";
-  priority: "High" | "Medium" | "Low";
-  dueDate: string;
-  assignees: number;
-}
+import { useState, useEffect } from "react";
+import api from "./api";
 
-const mockTasks: Task[] = [
-  { id: 1, title: "Task Assignment #1", description: "Lorem Ipsum dolor sit amet", status: "Requested", priority: "High", dueDate: "Apr 15, 2026", assignees: 3 },
-  { id: 2, title: "Task Assignment #2", description: "Lorem Ipsum dolor sit amet", status: "Requested", priority: "Medium", dueDate: "Apr 18, 2026", assignees: 2 },
-  { id: 3, title: "Task Assignment #3", description: "Lorem Ipsum dolor sit amet", status: "In Progress", priority: "High", dueDate: "Apr 12, 2026", assignees: 1 },
-  { id: 4, title: "Task Assignment #4", description: "Lorem Ipsum dolor sit amet", status: "Requested", priority: "Low", dueDate: "Apr 25, 2026", assignees: 2 },
-  { id: 5, title: "Task Assignment #5", description: "Lorem Ipsum dolor sit amet", status: "In Progress", priority: "Medium", dueDate: "Apr 20, 2026", assignees: 3 },
-  { id: 6, title: "Task Assignment #6", description: "Lorem Ipsum dolor sit amet", status: "Done", priority: "High", dueDate: "Apr 10, 2026", assignees: 2 },
-  { id: 7, title: "Task Assignment #7", description: "Lorem Ipsum dolor sit amet", status: "Done", priority: "Low", dueDate: "Apr 8, 2026", assignees: 1 },
-  { id: 8, title: "Task Assignment #8", description: "Lorem Ipsum dolor sit amet", status: "In Progress", priority: "Medium", dueDate: "Apr 22, 2026", assignees: 2 },
-];
-
-function StatusBadge({ status }: { status: Task["status"] }) {
-  const colorMap = {
+// Helper components moved outside or imported
+function StatusBadge({ status }: { status: string }) {
+  const colorMap: Record<string, string> = {
     Requested: "badge-info",
     "In Progress": "badge-warning",
     Done: "badge-success",
   };
-
-  return <span className={`badge ${colorMap[status]} badge-sm`}>{status}</span>;
+  return <span className={`badge ${colorMap[status] || "badge-ghost"} badge-sm`}>{status}</span>;
 }
 
-function PriorityBadge({ priority }: { priority: Task["priority"] }) {
-  const colorMap = {
+function PriorityBadge({ priority }: { priority: string }) {
+  const colorMap: Record<string, string> = {
     High: "badge-error",
     Medium: "badge-warning",
     Low: "badge-ghost",
   };
-
-  return <span className={`badge ${colorMap[priority]} badge-sm`}>{priority}</span>;
+  return <span className={`badge ${colorMap[priority] || "badge-ghost"} badge-sm`}>{priority}</span>;
 }
 
-export function ListView({ projectName, searchQuery }: { projectName: string; searchQuery: string }) {
-  const filteredTasks = mockTasks.filter((task) => {
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          task.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+export function ListView({ projectName, searchQuery, onTaskClick }: { projectName: string; searchQuery: string; onTaskClick: (task: any) => void }) {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const url = projectName === "All" ? "/tasks" : `/tasks?project=${projectName}`;
+        const response = await api.get(url);
+        setTasks(response.data);
+      } catch (error) {
+        console.error("Failed to load tasks");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, [projectName]);
+
+  const filteredTasks = tasks.filter((task) =>
+    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    task.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) return <div className="flex justify-center p-10"><span className="loading loading-dots loading-lg"></span></div>;
 
   return (
-    <div className="bg-base-100 rounded-box overflow-hidden">
+    <div className="bg-base-100 rounded-box overflow-hidden border border-base-300">
       <div className="overflow-x-auto">
         <table className="table table-zebra w-full">
           <thead className="bg-base-200">
             <tr>
-              <th className="w-8">
-                <input type="checkbox" className="checkbox checkbox-sm" />
-              </th>
+              <th className="w-8"><input type="checkbox" className="checkbox checkbox-sm" /></th>
               <th>Task</th>
-              <th>Description</th>
               <th>Status</th>
               <th>Priority</th>
               <th>Due Date</th>
@@ -65,24 +63,20 @@ export function ListView({ projectName, searchQuery }: { projectName: string; se
           </thead>
           <tbody>
             {filteredTasks.map((task) => (
-              <tr key={task.id} className="hover">
+              <tr key={task.id} className="hover cursor-pointer" onClick={() => onTaskClick(task)}>
+                <td><input type="checkbox" className="checkbox checkbox-sm" onClick={(e) => e.stopPropagation()} /></td>
                 <td>
-                  <input type="checkbox" className="checkbox checkbox-sm" />
+                  <div className="font-semibold">{task.title}</div>
+                  <div className="text-xs opacity-50 truncate max-w-xs">{task.description}</div>
                 </td>
-                <td className="font-semibold">{task.title}</td>
-                <td className="text-sm text-base-content/70">{task.description}</td>
-                <td>
-                  <StatusBadge status={task.status} />
-                </td>
-                <td>
-                  <PriorityBadge priority={task.priority} />
-                </td>
+                <td><StatusBadge status={task.status} /></td>
+                <td><PriorityBadge priority={task.priority} /></td>
                 <td className="text-sm">{task.dueDate}</td>
                 <td>
-                  <div className="flex -space-x-2">
-                    {Array.from({ length: task.assignees }).map((_, i) => (
+                   <div className="flex -space-x-2">
+                    {Array.from({ length: task.assignees || 1 }).map((_, i) => (
                       <div key={i} className="avatar placeholder">
-                        <div className="bg-neutral text-neutral-content rounded-full w-6 h-6 text-xs flex items-center justify-center ring-2 ring-base-100">
+                        <div className="bg-neutral text-neutral-content rounded-full w-6 h-6 text-[10px] ring-2 ring-base-100">
                           <span>A{i + 1}</span>
                         </div>
                       </div>
@@ -91,18 +85,9 @@ export function ListView({ projectName, searchQuery }: { projectName: string; se
                 </td>
               </tr>
             ))}
-            {filteredTasks.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-10 text-base-content/50">
-                  No tasks found matching your search.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
-
-export default ListView;
