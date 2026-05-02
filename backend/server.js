@@ -1,18 +1,20 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const connectDB = require('./config/db'); // Ensure this exists
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
 
-// Connect to Database
+// 1. RE-ENABLE DATABASE CONNECTION
 connectDB();
 
 const app = express();
 
-// Middleware
+// 2. KEEP CORS (Essential for your Frontend to talk to this Backend)
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,7 +43,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
