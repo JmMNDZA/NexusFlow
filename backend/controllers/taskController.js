@@ -30,9 +30,23 @@ const createTask = async (req, res) => {
 // @desc    Update a task
 const updateTask = async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    res.status(200).json(task);
+    
+    // If status is being changed to in-progress or completed, check if user is admin or assigned user
+    if (req.body.status && (req.body.status === 'in-progress' || req.body.status === 'completed')) {
+      const isAdmin = req.user.role === 'Admin';
+      const isAssignedUser = task.assignedTo && task.assignedTo.toString() === req.user._id.toString();
+      
+      if (!isAdmin && !isAssignedUser) {
+        return res.status(403).json({ message: 'Only admin or assigned user can change task status' });
+      }
+    }
+    
+    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('projectId', 'title')
+      .populate('assignedTo', 'name email');
+    res.status(200).json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

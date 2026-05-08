@@ -21,6 +21,9 @@ const TaskSchema = new mongoose.Schema({
   assignedTo: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 
+  },
+  dueDate: { 
+    type: Date 
   }
 }, { timestamps: true });
 

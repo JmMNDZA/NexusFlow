@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import { api } from '~/lib/api';
 import { TaskModal } from './TaskModal'; 
 
 interface Task {
@@ -22,18 +24,14 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
       onClick={onClick}
       className="bg-base-100 rounded-box p-4 shadow-sm hover:shadow-md transition-shadow w-full cursor-pointer border border-base-300"
     >
-      <div className="flex justify-between items-start mb-1 gap-2">
+      <div className="mb-1">
         <h4 className="font-semibold text-sm leading-tight">{task.taskName}</h4>
-        <div className={`badge badge-xs p-1.5 uppercase font-bold ${
-          task.priority === 'High' ? 'badge-error' : 
-          task.priority === 'Medium' ? 'badge-warning' : 'badge-success'
-        }`}></div>
       </div>
       
       {task.description && (
         <p className="text-xs text-base-content/60 mb-3 line-clamp-2">{task.description}</p>
       )}
-      
+
       <div className="flex justify-between items-center mt-auto">
         <div className="flex -space-x-2">
           {task.assignedTo && (
@@ -79,11 +77,19 @@ function KanbanColumn({ title, tasks, status, onTaskClick }: {
   );
 }
 
-export function KanbanView({ tasks }: KanbanViewProps) {
+export function KanbanView({ tasks: initialTasks }: KanbanViewProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   const getTasksByStatus = (status: Task["status"]) => 
     tasks.filter(task => task.status === status);
+
+  const handleTaskUpdate = (updatedTask: Task) => {
+    setTasks(tasks.map(task => 
+      task._id === updatedTask._id ? updatedTask : task
+    ));
+    setSelectedTask(updatedTask);
+  };
 
   return (
     <>
@@ -92,19 +98,19 @@ export function KanbanView({ tasks }: KanbanViewProps) {
           title="To Do" 
           status="todo" 
           tasks={getTasksByStatus("todo")} 
-          onTaskClick={(task) => setSelectedTask(task)} 
+          onTaskClick={(task) => setSelectedTask(task)}
         />
         <KanbanColumn 
           title="In Progress" 
           status="in-progress" 
           tasks={getTasksByStatus("in-progress")} 
-          onTaskClick={(task) => setSelectedTask(task)} 
+          onTaskClick={(task) => setSelectedTask(task)}
         />
         <KanbanColumn 
           title="Done" 
           status="completed" 
           tasks={getTasksByStatus("completed")} 
-          onTaskClick={(task) => setSelectedTask(task)} 
+          onTaskClick={(task) => setSelectedTask(task)}
         />
       </div>
 
@@ -113,6 +119,7 @@ export function KanbanView({ tasks }: KanbanViewProps) {
           task={selectedTask} 
           isOpen={!!selectedTask} 
           onClose={() => setSelectedTask(null)} 
+          onTaskUpdate={handleTaskUpdate}
         />
       )}
     </>

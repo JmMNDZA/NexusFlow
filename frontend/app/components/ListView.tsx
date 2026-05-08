@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { TaskModal } from './TaskModal';
+
 interface Task {
   _id: string;
   taskName: string;
@@ -39,6 +42,7 @@ function PriorityBadge({ priority }: { priority: Task["priority"] }) {
 }
 
 export function ListView({ tasks }: ListViewProps) {
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   return (
     <div className="bg-base-100 rounded-box overflow-hidden border border-base-300">
       <div className="overflow-x-auto">
@@ -57,7 +61,7 @@ export function ListView({ tasks }: ListViewProps) {
           </thead>
           <tbody>
             {tasks.map((task) => (
-              <tr key={task._id} className="hover">
+              <tr key={task._id} className="hover cursor-pointer" onClick={() => setSelectedTask(task)}>
                 <td>
                   <input type="checkbox" className="checkbox checkbox-sm" />
                 </td>
@@ -102,6 +106,14 @@ export function ListView({ tasks }: ListViewProps) {
           </tbody>
         </table>
       </div>
+
+      {selectedTask && (
+        <TaskModal 
+          task={selectedTask} 
+          isOpen={!!selectedTask} 
+          onClose={() => setSelectedTask(null)} 
+        />
+      )}
     </div>
   );
 }

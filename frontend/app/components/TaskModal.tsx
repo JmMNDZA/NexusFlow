@@ -1,36 +1,171 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { api } from "~/lib/api";
 
 interface Comment {
-  id: number;
-  user: string;
-  text: string;
-  timestamp: string;
+  _id: string;
+  author: { name: string; email: string; _id: string };
+  content: string;
+  createdAt: string;
 }
 
 interface TaskModalProps {
   task: any;
   isOpen: boolean;
   onClose: () => void;
+  onTaskUpdate?: (updatedTask: any) => void;
 }
 
-export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
+export function TaskModal({ task, isOpen, onClose, onTaskUpdate }: TaskModalProps) {
   const [comment, setComment] = useState("");
-  
-  // FIX: Initialized with an empty array to remove hardcoded "Mendoza" comment
   const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingDeadline, setUpdatingDeadline] = useState(false);
+  const [updatingDescription, setUpdatingDescription] = useState(false);
+  const [currentTask, setCurrentTask] = useState(task);
+  const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionText, setDescriptionText] = useState("");
+
+  // Update local task when prop changes
+  useEffect(() => {
+    setCurrentTask(task);
+  }, [task]);
+
+  // Fetch comments from backend when modal opens
+  useEffect(() => {
+    if (isOpen && task._id) {
+      fetchComments();
+    }
+  }, [isOpen, task._id]);
+
+  const fetchComments = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/comments/task/${task._id}`);
+      setComments(Array.isArray(res.data) ? res.data : res.data.comments || []);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      setComments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      setUpdatingStatus(true);
+      const res = await api.put(`/tasks/${currentTask._id}`, {
+        status: newStatus
+      });
+      const updatedTask = res.data;
+      setCurrentTask(updatedTask);
+      if (onTaskUpdate) {
+        onTaskUpdate(updatedTask);
+      }
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : "Failed to update task status";
+      console.error("Error updating task status:", error);
+      alert(`Error: ${message}`);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleDeadlineChange = async (date: string) => {
+    try {
+      setUpdatingDeadline(true);
+      const res = await api.put(`/tasks/${currentTask._id}`, {
+        dueDate: date ? new Date(date).toISOString() : null
+      });
+      const updatedTask = res.data;
+      setCurrentTask(updatedTask);
+      if (onTaskUpdate) {
+        onTaskUpdate(updatedTask);
+      }
+      setShowDeadlinePicker(false);
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : "Failed to update deadline";
+      console.error("Error updating deadline:", error);
+      alert(`Error: ${message}`);
+    } finally {
+      setUpdatingDeadline(false);
+    }
+  };
+
+  const handleDescriptionChange = async () => {
+    try {
+      setUpdatingDescription(true);
+      const res = await api.put(`/tasks/${currentTask._id}`, {
+        description: descriptionText.trim()
+      });
+      const updatedTask = res.data;
+      setCurrentTask(updatedTask);
+      if (onTaskUpdate) {
+        onTaskUpdate(updatedTask);
+      }
+      setEditingDescription(false);
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : "Failed to update description";
+      console.error("Error updating description:", error);
+      alert(`Error: ${message}`);
+    } finally {
+      setUpdatingDescription(false);
+    }
+  };
+
+  const startEditingDescription = () => {
+    setDescriptionText(currentTask.description || "");
+    setEditingDescription(true);
+  };
+
+  const cancelEditingDescription = () => {
+    setDescriptionText("");
+    setEditingDescription(false);
+  };
 
   if (!isOpen) return null;
 
-  const handleSendComment = () => {
+  const handleSendComment = async () => {
     if (!comment.trim()) return;
-    const newComment = {
-      id: Date.now(),
-      user: "You",
-      text: comment,
-      timestamp: "Just now"
-    };
-    setComments([...comments, newComment]);
-    setComment("");
+    try {
+      await api.post("/comments", {
+        taskId: currentTask._id,
+        content: comment.trim()
+      });
+      setComment("");
+      // Refresh comments list
+      await fetchComments();
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : "Failed to post comment";
+      console.error("Error posting comment:", error);
+      alert(`Error: ${message}`);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Not set";
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  };
+
+  const getDateInputValue = () => {
+    if (!currentTask.dueDate) return "";
+    const date = new Date(currentTask.dueDate);
+    return date.toISOString().split('T')[0];
   };
 
   return (
@@ -39,9 +174,8 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
         {/* Header */}
         <div className="p-6 border-b border-base-200 flex justify-between items-start bg-base-200/30">
           <div>
-            {/* FIX: Changed task.title to task.taskName to match your data model */}
-            <h3 className="text-xl font-bold">{task.taskName || "Untitled Task"}</h3>
-            <p className="text-sm opacity-60">in Project {task.projectId?.title || "NexusFlow"}</p>
+            <h3 className="text-xl font-bold">{currentTask.taskName || "Untitled Task"}</h3>
+            <p className="text-sm opacity-60">in Project {currentTask.projectId?.title || "NexusFlow"}</p>
           </div>
           <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>✕</button>
         </div>
@@ -49,12 +183,112 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
         <div className="flex flex-1 overflow-hidden">
           {/* Details Side */}
           <div className="w-1/2 p-6 overflow-y-auto border-r border-base-200">
-            <h4 className="font-bold text-sm uppercase opacity-50 mb-4">Description</h4>
-            <p className="text-sm mb-6">{task.description || "No description provided."}</p>
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-bold text-sm uppercase opacity-50">Description</h4>
+                {!editingDescription && (
+                  <button 
+                    onClick={startEditingDescription}
+                    className="btn btn-xs btn-outline"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+              
+              {editingDescription ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={descriptionText}
+                    onChange={(e) => setDescriptionText(e.target.value)}
+                    placeholder="Enter task description..."
+                    className="textarea textarea-bordered w-full text-sm"
+                    rows={4}
+                    disabled={updatingDescription}
+                  />
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleDescriptionChange}
+                      disabled={updatingDescription}
+                      className="btn btn-sm btn-primary"
+                    >
+                      {updatingDescription ? 'Saving...' : 'Save'}
+                    </button>
+                    <button 
+                      onClick={cancelEditingDescription}
+                      disabled={updatingDescription}
+                      className="btn btn-sm btn-outline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm">{currentTask.description || "No description provided."}</p>
+              )}
+            </div>
             
-            <h4 className="font-bold text-sm uppercase opacity-50 mb-2">Attachments</h4>
-            <div className="border-2 border-dashed border-base-300 rounded-lg p-4 text-center text-xs opacity-50">
-              Drop files here or click to upload
+            {/* Status Section */}
+            <div className="mb-6">
+              <h4 className="font-bold text-sm uppercase opacity-50 mb-3">Status</h4>
+              <div className="flex gap-2 flex-wrap">
+                <button 
+                  onClick={() => handleStatusChange('todo')}
+                  disabled={updatingStatus}
+                  className={`btn btn-sm ${currentTask.status === 'todo' ? 'btn-info' : 'btn-outline'}`}
+                >
+                  {updatingStatus ? '...' : 'To Do'}
+                </button>
+                <button 
+                  onClick={() => handleStatusChange('in-progress')}
+                  disabled={updatingStatus}
+                  className={`btn btn-sm ${currentTask.status === 'in-progress' ? 'btn-warning' : 'btn-outline'}`}
+                >
+                  {updatingStatus ? '...' : 'In Progress'}
+                </button>
+                <button 
+                  onClick={() => handleStatusChange('completed')}
+                  disabled={updatingStatus}
+                  className={`btn btn-sm ${currentTask.status === 'completed' ? 'btn-success' : 'btn-outline'}`}
+                >
+                  {updatingStatus ? '...' : 'Done'}
+                </button>
+              </div>
+            </div>
+
+            {/* Deadline Section */}
+            <div className="mb-6">
+              <h4 className="font-bold text-sm uppercase opacity-50 mb-3">Deadline</h4>
+              <div className="flex items-center gap-2">
+                <span className="text-sm badge badge-outline">{formatDate(currentTask.dueDate)}</span>
+                <button 
+                  onClick={() => setShowDeadlinePicker(!showDeadlinePicker)}
+                  disabled={updatingDeadline}
+                  className="btn btn-sm btn-outline"
+                >
+                  {updatingDeadline ? '...' : 'Set Date'}
+                </button>
+              </div>
+              {showDeadlinePicker && (
+                <div className="mt-3 flex gap-2">
+                  <input 
+                    type="date" 
+                    value={getDateInputValue()}
+                    onChange={(e) => handleDeadlineChange(e.target.value)}
+                    className="input input-bordered input-sm flex-1"
+                    disabled={updatingDeadline}
+                  />
+                  {currentTask.dueDate && (
+                    <button
+                      onClick={() => handleDeadlineChange('')}
+                      disabled={updatingDeadline}
+                      className="btn btn-sm btn-outline btn-error"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -63,24 +297,27 @@ export function TaskModal({ task, isOpen, onClose }: TaskModalProps) {
             <div className="p-4 border-b border-base-200 font-bold text-sm">Comments & Activity</div>
             
             <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
-              {comments.map((c) => (
-                <div key={c.id} className="chat chat-start">
-                  <div className="chat-image avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-8 h-8">
-                      <span className="text-xs">{c.user[0]}</span>
-                    </div>
-                  </div>
-                  <div className="chat-header opacity-50 text-[10px] ml-1">
-                    {c.user} • {c.timestamp}
-                  </div>
-                  <div className="chat-bubble bg-base-200 text-base-content text-sm">{c.text}</div>
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-xs opacity-50">Loading comments...</div>
                 </div>
-              ))}
-              
-              {/* Added a subtle UI for empty comments */}
-              {comments.length === 0 && (
+              ) : comments.length > 0 ? (
+                comments.map((c) => (
+                  <div key={c._id} className="chat chat-start">
+                    <div className="chat-image avatar placeholder">
+                      <div className="bg-neutral text-neutral-content rounded-full w-8 h-8">
+                        <span className="text-xs">{c.author.name[0]}</span>
+                      </div>
+                    </div>
+                    <div className="chat-header opacity-50 text-[10px] ml-1">
+                      {c.author.name} • {new Date(c.createdAt).toLocaleDateString()} {new Date(c.createdAt).toLocaleTimeString()}
+                    </div>
+                    <div className="chat-bubble bg-base-200 text-base-content text-sm">{c.content}</div>
+                  </div>
+                ))
+              ) : (
                 <div className="flex flex-col items-center justify-center h-full opacity-20 text-center p-4">
-                   <div className="text-xs uppercase tracking-widest">No activity yet</div>
+                  <div className="text-xs uppercase tracking-widest">No comments yet</div>
                 </div>
               )}
             </div>

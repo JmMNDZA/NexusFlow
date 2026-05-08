@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true }, 
   role: { 
     type: String, 
-    enum: ['Project Manager', 'Team Member', 'Guest'], 
+    enum: ['Admin', 'Project Manager', 'Team Member', 'Guest'], 
     required: true 
   },
   // Stores the code of the project they joined or created
